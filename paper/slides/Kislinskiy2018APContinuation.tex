@@ -1,0 +1,127 @@
+\documentclass{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{amsmath,mathrsfs,mathtext}
+\usepackage{graphicx, epsfig}
+\usetheme{Warsaw}%{Singapore}%{Warsaw}%{Warsaw}%{Darmstadt}
+\usecolortheme{sidebartab}
+\definecolor{beamer@blendedblue}{RGB}{21,96,189}
+%----------------------------------------------------------------------------------------------------------
+\title[\hbox to 56mm{Автоматическое дополнение плейлистов  \hfill\insertframenumber\,/\,\inserttotalframenumber}]
+{Автоматическое дополнение плейлистов \\ в рекомендательной системе пользователей}
+\author[В.\,Г. Кислинский]{\large \\Кислинский Вадим Геннадьевич}
+\institute{\large
+Московский физико-технический институт}
+
+\date{\footnotesize{\emph{Курс:} Численные методы обучения по прецедентам\par (практика, В.\,В. Стрижов)/Группа 574, весна 2018}}
+%----------------------------------------------------------------------------------------------------------
+\begin{document}
+%----------------------------------------------------------------------------------------------------------
+\begin{frame}
+%\thispagestyle{empty}
+\titlepage
+\end{frame}
+%-----------------------------------------------------------------------------------------------------
+\begin{frame}{Цель исследование}
+
+\begin{block}{Цель}
+Решить задачу top-N рекомендаций
+\end{block}
+
+\begin{block}{Метод}
+Матричная факторизация, учитывающая дополнительные знания о плейлистах и треках
+\end{block}
+\end{frame}
+%----------------------------------------------------------------------------------------------------------
+\begin{frame}{Литература}
+
+{\bf Обзор классических методов}
+\begin{enumerate}
+\item[1] Paolo Cremonesi al. \textit{Performance of recommender algorithms on top-n recommendation tasks.} 2010
+\end{enumerate}
+{\bf Метод совместной факторизации}
+\begin{enumerate}
+\item[2] 	Dimitrios Rafailidis al. \textit{Modeling the Dynamics of User Preferences in Coupled Tensor Factorization.}  2013
+\end{enumerate}
+{\bf Алгоритм LCE}
+\begin{enumerate}
+\item[3]Martin Saveski al. \textit{ Item Cold-Start Recommendations:
+Learning Local Collective Embeddings.} 2014
+\end{enumerate}
+\end{frame}
+%----------------------------------------------------------------------------------------------------------
+\begin{frame}{Постановка задачи}
+\begin{block}{Дано}
+\begin{enumerate}
+\item $\math{U}$ - множество из $\math{n}$ плейлистов, 
+\item $\math{I}$ - множество из $\math{m}$ треков,
+\item $\math{D} = \{(u, i) | u \in U, i \in I \}$ - множество транзакций,
+\item $\math{R}$ - матрица $\math{n \times m}$, где $\math{R_{ui}} = 1$, 
+если $\math{(u, i) \in D}$,
+\item $\math{X_U}$ - матрица $\math{n \times v}$ признакового описания плейлистов,
+\item $\math{X_I}$ - матрица $\math{m \times w}$ признакового описания треков
+\end{enumerate}
+
+\end{block}
+\begin{block}{Задача}
+Для плейлиста  $\math{u}$ построить вектор $\mathbf{r}$  из $\math{m}$ элементов, которые означают насколько треки подходят данному плейлисту
+\end{block}
+
+
+\end{frame}
+%----------------------------------------------------------------------------------------------------------
+\begin{frame}{Постановка задачи}
+\begin{block}{Оптимизационная задача}
+
+\begin{center}
+$$\arg\min_{\mathbf{W, H_I, H_U}}(\alpha||\mathbf{X_U} - \mathbf{WH_U}||^2 + (1 - \alpha)||\mathbf{R} - \mathbf{WH_I}||^2 + $$ $$ +  \lambda(||\mathbf{W}||^2_F + ||\mathbf{H_U}||^2_F + ||\mathbf{H_I}||^2_F))$$ $$ s. t. \mathbf{W} \geq 0, \mathbf{H_U} \geq 0, 
+\mathbf{H_I} \geq 0
+\end{center}
+\end{block}
+\begin{block}{Вычисляем $\mathbf{r}$ для пользователя $\math{u}$}
+Пусть $\mathbf{x}$ - признаковое описание плейлиста.
+
+Решим систему $\mathbf{x} = \mathbf{H_U^T}\mathbf{w}$ относительно $\mathbf{w}$,
+и определим $$\mathbf{r} = \mathbf{H_I^Tw}$$
+\end{block}
+\end{frame}
+%----------------------------------------------------------------------------------------------------------
+\begin{frame}{Постановка задачи}
+\begin{block}{Метрики качества}
+
+$\math{R}$ - список top-N рекомендаций, $\math{G}$ - список настоящих треков плейлиста 
+
+$$R@call = \frac{|G \cap R_{1:|G|}|}{|G|}$$
+$$Presicion = \frac{|G \cap R_{1:|G|}|}{|R_{1:|G|}|}$$
+\end{block}
+\end{frame}
+%-------------------------------------------------------------------------------------------------------
+\begin{frame}{Эксперимент}
+\begin{block}{Данные}
+Выборка из 20000 плейлистов, содержащая 265464 различных треков, количество транзакций - 1302790.
+\end{block}
+
+\begin{block}{Базовый алгоритм - PureSVD}
+Неизвестные значения матрицы $\mathbf{R}$ заполняются нулями и делается SVD разложение, полученной матрицы.
+$$\mathbf{\hat{R}} = \mathbf{U\Sigma Q^T}$$
+$$\mathbf{R} = \mathbf{PQ^T},  \mathbf{P} = \mathbf{U\Sigma} = \mathbf{RQ}$$
+$$\mathbf{\hat{r}_u} = \mathbf{r_uQQ^T}$$
+  
+\end{block}
+
+\end{frame}
+
+\begin{frame}{Результаты эксперимента}
+\begin{figure}[h]
+\begin{minipage}[h]{0.49\linewidth}
+\center{\includegraphics[width=1\linewidth]{recall.png}}
+\end{minipage}
+\begin{minipage}[h]{0.49\linewidth}
+\center{\includegraphics[width=1\linewidth]{precision.png}}
+\end{minipage}
+\caption{Зависимость метрики от ранга разложения.}
+\label{ris:image1}
+\end{figure}
+\end{frame}
+
+\end{document}
