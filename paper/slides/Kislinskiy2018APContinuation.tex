@@ -3,12 +3,15 @@
 \usepackage[russian]{babel}
 \usepackage{amsmath,mathrsfs,mathtext}
 \usepackage{graphicx, epsfig}
+\usepackage{amsmath}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
 \usetheme{Warsaw}%{Singapore}%{Warsaw}%{Warsaw}%{Darmstadt}
 \usecolortheme{sidebartab}
 \definecolor{beamer@blendedblue}{RGB}{21,96,189}
 %----------------------------------------------------------------------------------------------------------
 \title[\hbox to 56mm{Автоматическое дополнение плейлистов  \hfill\insertframenumber\,/\,\inserttotalframenumber}]
-{Автоматическое дополнение плейлистов \\ в рекомендательной системе пользователей}
+{Автоматическое дополнение музыкальных плейлистов \\ в рекомендательной системе}
 \author[В.\,Г. Кислинский]{\large \\Кислинский Вадим Геннадьевич}
 \institute{\large
 Московский физико-технический институт}
@@ -25,103 +28,174 @@
 \begin{frame}{Цель исследование}
 
 \begin{block}{Цель}
-Решить задачу top-N рекомендаций
+Исследовать метод матричной факторизации в задаче автоматического дополнения плейлистов
 \end{block}
 
-\begin{block}{Метод}
-Матричная факторизация, учитывающая дополнительные знания о плейлистах и треках
+\begin{block}{Проблемы}
+
+\begin{itemize}
+\item{Классический метод матричной факторизации не учитывает дополнительную информацию о плейлистах и треках}
+\item{Проблема холодного старта для новых плейлистов}
+\end{itemize}
+\end{block}
+
+\begin{block}{Было предложено}
+Использовать метод совместной матричной факторизации
 \end{block}
 \end{frame}
 %----------------------------------------------------------------------------------------------------------
 \begin{frame}{Литература}
 
-{\bf Обзор классических методов}
+{\bf Обзор основных подходов к задаче автоматического дополнения плейлистов}
 \begin{enumerate}
-\item[1] Paolo Cremonesi al. \textit{Performance of recommender algorithms on top-n recommendation tasks.} 2010
+\item[1]Geoffray Bonnin, Dietmar Jannach. Automated Generation of Music Playlists: Survey and
+Experiments. ACM Computing Surveys (CSUR). 2014
+\end{enumerate}
+{\bf Основные методы в задаче top-{N} рекомендаций}
+\begin{enumerate}
+\item[2] Paolo Cremonesi al. \textit{Performance of recommender algorithms on top-n recommendation tasks.} 2010
 \end{enumerate}
 {\bf Метод совместной факторизации}
 \begin{enumerate}
-\item[2] 	Dimitrios Rafailidis al. \textit{Modeling the Dynamics of User Preferences in Coupled Tensor Factorization.}  2013
+\item[3] 	Dimitrios Rafailidis al. \textit{Modeling the Dynamics of User Preferences in Coupled Tensor Factorization.}  2013
 \end{enumerate}
 {\bf Алгоритм LCE}
 \begin{enumerate}
-\item[3]Martin Saveski al. \textit{ Item Cold-Start Recommendations:
+\item[4]Martin Saveski al. \textit{ Item Cold-Start Recommendations:
 Learning Local Collective Embeddings.} 2014
 \end{enumerate}
 \end{frame}
 %----------------------------------------------------------------------------------------------------------
 \begin{frame}{Постановка задачи}
 \begin{block}{Дано}
-\begin{enumerate}
-\item $\math{U}$ - множество из $\math{n}$ плейлистов, 
-\item $\math{I}$ - множество из $\math{m}$ треков,
-\item $\math{D} = \{(u, i) | u \in U, i \in I \}$ - множество транзакций,
-\item $\math{R}$ - матрица $\math{n \times m}$, где $\math{R_{ui}} = 1$, 
-если $\math{(u, i) \in D}$,
-\item $\math{X_U}$ - матрица $\math{n \times v}$ признакового описания плейлистов,
-\item $\math{X_I}$ - матрица $\math{m \times w}$ признакового описания треков
-\end{enumerate}
-
+$\mathcal{P}$ - множество из ${n}$ плейлистов, $\mathcal{T}$ - множество из ${m}$ треков, матрица $\mathbf{R} \in \mathbb{R}^{n \times m}$, где $\mathbf{R}_{ij} = 1$, 
+если $t_j \in {p}_j$. Каждый трек описывается автором и альбомом, плейлист названием. Эта информация задается матрицей $\mathbf{X} \in \mathbb{R}^{n \times (k + d + l)}$, первые $k$ столбцов показывают, какие авторы входят в плейлист, следующие $d$, какие альбомы, последние $l$ описывают названия плейлистов
 \end{block}
 \begin{block}{Задача}
-Для плейлиста  $\math{u}$ построить вектор $\mathbf{r}$  из $\math{m}$ элементов, которые означают насколько треки подходят данному плейлисту
-\end{block}
-
-
-\end{frame}
-%----------------------------------------------------------------------------------------------------------
-\begin{frame}{Постановка задачи}
-\begin{block}{Оптимизационная задача}
-
-\begin{center}
-$$\arg\min_{\mathbf{W, H_I, H_U}}(\alpha||\mathbf{X_U} - \mathbf{WH_U}||^2 + (1 - \alpha)||\mathbf{R} - \mathbf{WH_I}||^2 + $$ $$ +  \lambda(||\mathbf{W}||^2_F + ||\mathbf{H_U}||^2_F + ||\mathbf{H_I}||^2_F))$$ $$ s. t. \mathbf{W} \geq 0, \mathbf{H_U} \geq 0, 
-\mathbf{H_I} \geq 0
-\end{center}
-\end{block}
-\begin{block}{Вычисляем $\mathbf{r}$ для пользователя $\math{u}$}
-Пусть $\mathbf{x}$ - признаковое описание плейлиста.
-
-Решим систему $\mathbf{x} = \mathbf{H_U^T}\mathbf{w}$ относительно $\mathbf{w}$,
-и определим $$\mathbf{r} = \mathbf{H_I^Tw}$$
+Для нового плейлиста построить вектор $\mathbf{r} \in \mathbb{R}^{m \times 1}$, $i$-ый элемент которого означает насколько трек $t_i$ подходит данному плейлисту
 \end{block}
 \end{frame}
 %----------------------------------------------------------------------------------------------------------
-\begin{frame}{Постановка задачи}
-\begin{block}{Метрики качества}
+\begin{frame}{Задача совместной матричной факторизации}
 
-$\math{R}$ - список top-N рекомендаций, $\math{G}$ - список настоящих треков плейлиста 
+Ищется разложение матрицы $\mathbf{R}$ на две матрицы меньшей размерности \[ \mathbf{R} \approx \mathbf{UV}\]
 
-$$R@call = \frac{|G \cap R_{1:|G|}|}{|G|}$$
-$$Presicion = \frac{|G \cap R_{1:|G|}|}{|R_{1:|G|}|}$$
-\end{block}
+Предполагая, что профили плейлистов зависят от того, какие исполнители, альбомы входят в плейлист, 
+какие названия у плейлистов, запишем \[\mathbf{X} \approx \mathbf{UH}\]
+
+Приходим к задаче оптимизации:
+
+\begin{equation}
+\begin{gathered}
+\hat{\mathbf{U}}, \hat{\mathbf{V}}, \hat{\mathbf{H}} = \argmin_{\mathbf{U, V, H}}\alpha||\mathbf{R} - \mathbf{UV}||_F^2 +(1 - \alpha) ||\mathbf{X} - \mathbf{UH}||_F^2 + \\
+ \lambda(||\mathbf{U}||_F^2 + ||\mathbf{V}||_F^2 + ||\mathbf{H}||_F^2), \\
+ \text{s.t.}  \quad \mathbf{U} \geq 0,  \mathbf{V} \geq 0,   \mathbf{H} \geq 0
+\end{gathered}
+\end{equation}
+
+\end{frame}
+
+%------------------------------------------------------------------------------------------------------------
+\begin{frame}{Введение дополнительной регуляризации на основе близости плейлистов в пространстве признаков}
+
+Составим граф близости плейлистов в котором вершинами будут плейлисты. С помощью матрицы смежности ~--- $\mathbf{A}$ определим близость, соответственных профилей:
+
+\begin{equation}
+\begin{gathered}
+S = \frac{1}{2}\sum_{i, j = 1}^n||\mathbf{u}_i - \mathbf{u}_j||^2\mathbf{A}_{ij} = \sum_{i = 1}^n (\mathbf{u}_i^{T}\mathbf{u}_i)\mathbf{D}_{ii} - \sum_{i,j = 1}^n (\mathbf{u}_i^{T}\mathbf{u}_j)\mathbf{A}_{ij} =\\= \text{Tr}(\mathbf{U}^{T}\mathbf{DU}) -  \text{Tr}(\mathbf{U}^{T}\mathbf{AU}) = \text{Tr}(\mathbf{U}^{T}\mathbf{LU}),
+\end{gathered}
+\end{equation}
+
+Перепишем (1) с учетом $S$
+
+\begin{equation}
+\begin{gathered}
+\hat{\mathbf{U}}, \hat{\mathbf{V}}, \hat{\mathbf{H}} = \argmin_{\mathbf{U, V, H}}\alpha||\mathbf{R} - \mathbf{UV}||_F^2 +(1 - \alpha) ||\mathbf{X} - \mathbf{UH}||_F^2 + \\ \beta\text{Tr}(\mathbf{U}^T\mathbf{LU}) +  \lambda(||\mathbf{U}||_F^2 + ||\mathbf{V}||_F^2 + ||\mathbf{H}||_F^2),\\
+\text{s.t.} \quad \mathbf{U} \geq 0,  \mathbf{V} \geq 0,  \mathbf{H} \geq 0.
+\end{gathered}
+\end{equation}
+
+\end{frame}
+%----------------------------------------------------------------------------------------------------------
+\begin{frame}{Алгоритм поиска стационарной точки}
+
+Матрицы $(\mathbf{U, V, H})$ обновляются по следующим правилам:
+
+\begin{itemize}
+\item$\mathbf{U} = \mathbf{U} \odot \dfrac{\alpha\mathbf{R}\mathbf{V}^T + (1 -\alpha)\mathbf{X}\mathbf{H}^T + \beta\mathbf{AU}}{\alpha\mathbf{UV}\mathbf{V}^T + (1 - \alpha)\mathbf{UH}\mathbf{H}^T + \beta\mathbf{DU} + \lambda\mathbf{U}}$
+
+\item$\mathbf{V} = \mathbf{V} \odot \dfrac{\alpha\mathbf{U}^T\mathbf{R}}{\alpha\mathbf{U}^T\mathbf{UV} + \lambda\mathbf{V}}$
+
+\item$\mathbf{H} = \mathbf{H} \odot \dfrac{(1 - \alpha)\mathbf{U}^T\mathbf{X}}{(1 - \alpha)\mathbf{U}^T\mathbf{UH} + \lambda\mathbf{H}}$
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{Получение рекомендаций}
+
+Для нового плейлиста составим строку признакового описания $\mathbf{x} \in \mathbb{R}^{1 \times  (k + d + r)}$.  С помощью метода наименьших квадратов из системы \[\mathbf{x} = \mathbf{u}\mathbf{H}\] найдем профиль плейлиста $\mathbf{u}$. \[\mathbf{r} = \mathbf{uV},\] где $i$-ый элемент вектора $\mathbf{r}$ означает насколько трек $t_i$ подходит новому плейлисту , после этого из вектора $\mathbf{r}$ выбирается top-$N$ значений с индексами $\{i_1, \ldots, i_N\}$ и рекомендуются треки~$\{t_{i_1}, \ldots, t_{i_N}\}$.
+
 \end{frame}
 %-------------------------------------------------------------------------------------------------------
+\begin{frame}{Критерии качества}
+
+Пусть $R$ список рекомендованных треков, $G$ - список истинных треков.
+
+$$\text{R-precision} = \frac{|G \cap R_{1:|G|}|}{|G|}$$
+$$DCG = 1 + \sum_{i = 2}^{|R|} \frac{rel_i}{\log_{2}i}$$
+$$IDCG = 1 + \sum_{i = 2}^{|R|} \frac{1}{\log_{2}i}$$
+$$nDCG = \frac{DCG}{IDCG}$$
+
+\end{frame}
+%-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 \begin{frame}{Эксперимент}
+
 \begin{block}{Данные}
-Выборка из 20000 плейлистов, содержащая 265464 различных треков, количество транзакций - 1302790.
+Cлучайная подвыборка из миллиона плейлистов, содержащая 7657 плейлистов и 8560 треков, при этом каждый плейлист содержит не менее пяти треков. 
 \end{block}
 
 \begin{block}{Базовый алгоритм - PureSVD}
-Неизвестные значения матрицы $\mathbf{R}$ заполняются нулями и делается SVD разложение, полученной матрицы.
-$$\mathbf{\hat{R}} = \mathbf{U\Sigma Q^T}$$
+$$\mathbf{R} = \mathbf{U\Sigma Q^T}$$
 $$\mathbf{R} = \mathbf{PQ^T},  \mathbf{P} = \mathbf{U\Sigma} = \mathbf{RQ}$$
 $$\mathbf{\hat{r}_u} = \mathbf{r_uQQ^T}$$
-  
 \end{block}
 
 \end{frame}
-
+%-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 \begin{frame}{Результаты эксперимента}
-\begin{figure}[h]
-\begin{minipage}[h]{0.49\linewidth}
-\center{\includegraphics[width=1\linewidth]{recall.png}}
-\end{minipage}
-\begin{minipage}[h]{0.49\linewidth}
-\center{\includegraphics[width=1\linewidth]{precision.png}}
-\end{minipage}
-\caption{Зависимость метрики от ранга разложения.}
-\label{ris:image1}
+\begin{figure}[ht]\center
+\includegraphics[width=1\textwidth]{recall.pdf}\\
+\caption{Зависимость качества от ранга разложения.}
 \end{figure}
+\end{frame}
+%-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+\begin{frame}{Результаты эксперимента}
+\begin{figure}[ht]\center
+\includegraphics[width=1\textwidth]{recall2.pdf}\\
+\caption{Зависимость качества от topk.}
+\end{figure}
+\end{frame}
+%-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+\begin{frame}{Результаты эксперимента}
+\begin{figure}[ht]\center
+\includegraphics[width=1\textwidth]{nDCG.pdf}\\
+\caption{Зависимость качества от ранга разложения.}
+\end{figure}
+\end{frame}
+%-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+\begin{frame}{Результаты эксперимента}
+\begin{figure}[ht]\center
+\includegraphics[width=1\textwidth]{nDCG2.pdf}\\
+\caption{Зависимость качества от  topk.}
+\end{figure}
+\end{frame}
+%-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+\begin{frame}{Заключение}
+\begin{itemize}
+\item Исследован метод матричной матричной факторизации в задаче автоматического дополнения плейлистов.
+\item Исследовано влияние учета дополнительной информации в методе матричной факторизации.
+\item Проверено предположение о близости плейлистов в латентном пространстве.
+\end{itemize}
 \end{frame}
 
 \end{document}
